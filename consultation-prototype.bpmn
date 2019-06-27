@@ -11,24 +11,6 @@
       <bpmn:outgoing>SequenceFlow_16hlxna</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:serviceTask id="Task_19293fw" name="Display EHR Model">
-      <bpmn:extensionElements>
-        <camunda:connector>
-          <camunda:inputOutput>
-            <camunda:inputParameter name="url">http://3.89.210.6:8090/ehr/api/v1/templates/0a0ce6d4-6be2-4b45-9d96-5e7f6e6527b4</camunda:inputParameter>
-            <camunda:inputParameter name="method">GET</camunda:inputParameter>
-            <camunda:inputParameter name="headers">
-              <camunda:map>
-                <camunda:entry key="Authorization">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiZXh0cmFkYXRhIjp7Im9yZ2FuaXphdGlvbiI6IjEyMzQ1NiIsIm9yZ191aWQiOiJlOWQxMzI5NC1iY2U3LTQ0ZTctOTYzNS04ZTkwNmRhMGM5MTQifSwiaXNzdWVkX2F0IjoiMjAxOS0wNi0yNlQyMjoxOToxNC4xMjNaIn0=.9OFj9JJg/lgun3o6zGgp/xYxaQYuHQWAYwYG1hA8ldc=</camunda:entry>
-                <camunda:entry key="Accept">*/*</camunda:entry>
-              </camunda:map>
-            </camunda:inputParameter>
-            <camunda:outputParameter name="template">
-              <camunda:script scriptFormat="xml"></camunda:script>
-            </camunda:outputParameter>
-          </camunda:inputOutput>
-          <camunda:connectorId>http-connector</camunda:connectorId>
-        </camunda:connector>
-      </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_10q4iww</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1eipnjk</bpmn:outgoing>
     </bpmn:serviceTask>
