@@ -5,25 +5,23 @@
       <bpmn:outgoing>SequenceFlow_10q4iww</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="SequenceFlow_10q4iww" sourceRef="StartEvent_1" targetRef="Task_19293fw" />
-    <bpmn:sequenceFlow id="SequenceFlow_1eipnjk" sourceRef="Task_19293fw" targetRef="Task_0w7tuhf" />
-    <bpmn:userTask id="Task_0w7tuhf" name="Fill out form">
-      <bpmn:incoming>SequenceFlow_1eipnjk</bpmn:incoming>
-      <bpmn:outgoing>SequenceFlow_16hlxna</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="Task_19293fw" name="Display EHR Model">
+    <bpmn:endEvent id="EndEvent_07pbote" name="Consultation data saved">
+      <bpmn:incoming>SequenceFlow_0kgnp8k</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="Task_19293fw" name="Fetch EHR Model">
       <bpmn:extensionElements>
         <camunda:connector>
           <camunda:inputOutput>
-            <camunda:inputParameter name="url">http://3.89.210.6:8090/ehr/api/v1/templates/0a0ce6d4-6be2-4b45-9d96-5e7f6e6527b4</camunda:inputParameter>
+            <camunda:inputParameter name="url">${templateFetchUrl}</camunda:inputParameter>
             <camunda:inputParameter name="method">GET</camunda:inputParameter>
             <camunda:inputParameter name="headers">
               <camunda:map>
-                <camunda:entry key="Authorization">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiZXh0cmFkYXRhIjp7Im9yZ2FuaXphdGlvbiI6IjEyMzQ1NiIsIm9yZ191aWQiOiJlOWQxMzI5NC1iY2U3LTQ0ZTctOTYzNS04ZTkwNmRhMGM5MTQifSwiaXNzdWVkX2F0IjoiMjAxOS0wNi0yNlQyMjoxOToxNC4xMjNaIn0=.9OFj9JJg/lgun3o6zGgp/xYxaQYuHQWAYwYG1hA8ldc=</camunda:entry>
+                <camunda:entry key="Authorization">Bearer ${token}</camunda:entry>
                 <camunda:entry key="Accept">*/*</camunda:entry>
               </camunda:map>
             </camunda:inputParameter>
             <camunda:outputParameter name="template">
-              <camunda:script scriptFormat="xml"></camunda:script>
+              <camunda:script scriptFormat="Javascript">S(response)</camunda:script>
             </camunda:outputParameter>
           </camunda:inputOutput>
           <camunda:connectorId>http-connector</camunda:connectorId>
@@ -32,54 +30,114 @@
       <bpmn:incoming>SequenceFlow_10q4iww</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1eipnjk</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="SequenceFlow_16hlxna" sourceRef="Task_0w7tuhf" targetRef="Task_1nr5vji" />
-    <bpmn:serviceTask id="Task_1nr5vji" name="Save data to Database" camunda:type="external" camunda:topic="save-consultation-data">
-      <bpmn:incoming>SequenceFlow_16hlxna</bpmn:incoming>
-      <bpmn:outgoing>SequenceFlow_1g1gpei</bpmn:outgoing>
+    <bpmn:serviceTask id="Task_1t949jv" name="Convert Template to HTML Form">
+      <bpmn:extensionElements>
+        <camunda:connector>
+          <camunda:inputOutput>
+            <camunda:inputParameter name="url">${xmlToHtmlUrl}</camunda:inputParameter>
+            <camunda:inputParameter name="method">POST</camunda:inputParameter>
+            <camunda:inputParameter name="headers">
+              <camunda:map>
+                <camunda:entry key="Accept">*/*</camunda:entry>
+                <camunda:entry key="Authorization">Bearer ${token}</camunda:entry>
+                <camunda:entry key="Content-Type">text/xml</camunda:entry>
+              </camunda:map>
+            </camunda:inputParameter>
+            <camunda:inputParameter name="payload">
+              <camunda:script scriptFormat="Javascript">var template=execution.getVariable("template");
+template.toString()</camunda:script>
+            </camunda:inputParameter>
+            <camunda:outputParameter name="form">
+              <camunda:script scriptFormat="Javascript">S(response)</camunda:script>
+            </camunda:outputParameter>
+          </camunda:inputOutput>
+          <camunda:connectorId>http-connector</camunda:connectorId>
+        </camunda:connector>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_1eipnjk</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0pq6n21</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:endEvent id="EndEvent_07pbote" name="Consultation data saved">
-      <bpmn:incoming>SequenceFlow_1g1gpei</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:sequenceFlow id="SequenceFlow_1g1gpei" sourceRef="Task_1nr5vji" targetRef="EndEvent_07pbote" />
+    <bpmn:sequenceFlow id="SequenceFlow_0pq6n21" sourceRef="Task_1t949jv" targetRef="ServiceTask_13zhr5h" />
+    <bpmn:serviceTask id="ServiceTask_13zhr5h" name="Fill out form" camunda:type="external" camunda:topic="form">
+      <bpmn:incoming>SequenceFlow_0pq6n21</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0d79ufv</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="ServiceTask_01jy6f2" name="Save to DB">
+      <bpmn:extensionElements>
+        <camunda:connector>
+          <camunda:inputOutput>
+            <camunda:inputParameter name="url">${storeContributionUrl}</camunda:inputParameter>
+            <camunda:inputParameter name="headers">
+              <camunda:map>
+                <camunda:entry key="Accept">*/*</camunda:entry>
+                <camunda:entry key="Content-Type">application/json</camunda:entry>
+              </camunda:map>
+            </camunda:inputParameter>
+            <camunda:inputParameter name="method">POST</camunda:inputParameter>
+            <camunda:inputParameter name="payload">
+              <camunda:script scriptFormat="Javascript">var data = execution.getVariable("encryptedData");
+var instanceId = execution.getProcessInstanceId();
+'{"data":"'+data+'", "instanceId":"'+instanceId+'"}';</camunda:script>
+            </camunda:inputParameter>
+            <camunda:outputParameter name="response">
+              <camunda:script scriptFormat="Javascript">S(response)</camunda:script>
+            </camunda:outputParameter>
+          </camunda:inputOutput>
+          <camunda:connectorId>http-connector</camunda:connectorId>
+        </camunda:connector>
+      </bpmn:extensionElements>
+      <bpmn:incoming>SequenceFlow_0d79ufv</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_0kgnp8k</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_0d79ufv" sourceRef="ServiceTask_13zhr5h" targetRef="ServiceTask_01jy6f2" />
+    <bpmn:sequenceFlow id="SequenceFlow_0kgnp8k" sourceRef="ServiceTask_01jy6f2" targetRef="EndEvent_07pbote" />
+    <bpmn:sequenceFlow id="SequenceFlow_1eipnjk" sourceRef="Task_19293fw" targetRef="Task_1t949jv" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="consultation">
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
-        <dc:Bounds x="179" y="103" width="36" height="36" />
+        <dc:Bounds x="166" y="118.5" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="167" y="146" width="62" height="27" />
+          <dc:Bounds x="154" y="161.5" width="62" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="SequenceFlow_10q4iww_di" bpmnElement="SequenceFlow_10q4iww">
-        <di:waypoint x="215" y="121" />
-        <di:waypoint x="326" y="121" />
+        <di:waypoint x="202" y="136.5" />
+        <di:waypoint x="291" y="136.5" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="SequenceFlow_1eipnjk_di" bpmnElement="SequenceFlow_1eipnjk">
-        <di:waypoint x="426" y="121" />
-        <di:waypoint x="506" y="121" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="UserTask_1k5gzeo_di" bpmnElement="Task_0w7tuhf">
-        <dc:Bounds x="506" y="81" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ServiceTask_0i79emm_di" bpmnElement="Task_19293fw">
-        <dc:Bounds x="326" y="81" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="SequenceFlow_16hlxna_di" bpmnElement="SequenceFlow_16hlxna">
-        <di:waypoint x="606" y="121" />
-        <di:waypoint x="686" y="121" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="ServiceTask_0gnfzon_di" bpmnElement="Task_1nr5vji">
-        <dc:Bounds x="686" y="81" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_07pbote_di" bpmnElement="EndEvent_07pbote">
-        <dc:Bounds x="866" y="103" width="36" height="36" />
+        <dc:Bounds x="1058" y="118.5" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="841" y="146" width="86" height="27" />
+          <dc:Bounds x="1033" y="81" width="86" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="SequenceFlow_1g1gpei_di" bpmnElement="SequenceFlow_1g1gpei">
-        <di:waypoint x="786" y="121" />
-        <di:waypoint x="866" y="121" />
+      <bpmndi:BPMNShape id="ServiceTask_0i79emm_di" bpmnElement="Task_19293fw">
+        <dc:Bounds x="291" y="96.5" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_0e97457_di" bpmnElement="Task_1t949jv">
+        <dc:Bounds x="481" y="96.5" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0pq6n21_di" bpmnElement="SequenceFlow_0pq6n21">
+        <di:waypoint x="581" y="136.5" />
+        <di:waypoint x="671" y="136.5" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="ServiceTask_13zhr5h_di" bpmnElement="ServiceTask_13zhr5h">
+        <dc:Bounds x="671" y="96.5" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceTask_01jy6f2_di" bpmnElement="ServiceTask_01jy6f2">
+        <dc:Bounds x="865" y="96.5" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_0d79ufv_di" bpmnElement="SequenceFlow_0d79ufv">
+        <di:waypoint x="771" y="136.5" />
+        <di:waypoint x="865" y="136.5" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0kgnp8k_di" bpmnElement="SequenceFlow_0kgnp8k">
+        <di:waypoint x="965" y="136.5" />
+        <di:waypoint x="1058" y="136.5" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1eipnjk_di" bpmnElement="SequenceFlow_1eipnjk">
+        <di:waypoint x="391" y="136.5" />
+        <di:waypoint x="481" y="136.5" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
