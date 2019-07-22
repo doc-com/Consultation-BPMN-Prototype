@@ -6,7 +6,7 @@
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="SequenceFlow_10q4iww" sourceRef="StartEvent_1" targetRef="Task_19293fw" />
     <bpmn:endEvent id="EndEvent_07pbote" name="Consultation data saved">
-      <bpmn:incoming>SequenceFlow_1spysnr</bpmn:incoming>
+      <bpmn:incoming>SequenceFlow_1e7m1fj</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:serviceTask id="Task_19293fw" name="Fetch EHR Model">
       <bpmn:extensionElements>
@@ -30,11 +30,12 @@
       <bpmn:incoming>SequenceFlow_10q4iww</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_1eipnjk</bpmn:outgoing>
     </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="SequenceFlow_1eipnjk" sourceRef="Task_19293fw" targetRef="Task_1t949jv" />
     <bpmn:serviceTask id="Task_1t949jv" name="Convert Template to HTML Form">
       <bpmn:extensionElements>
         <camunda:connector>
           <camunda:inputOutput>
-            <camunda:inputParameter name="url">http://3.89.218.153:6969/opt2bundle/${templateId}</camunda:inputParameter>
+            <camunda:inputParameter name="url">http://3.89.218.153:6969/opt2bundle</camunda:inputParameter>
             <camunda:inputParameter name="method">POST</camunda:inputParameter>
             <camunda:inputParameter name="headers">
               <camunda:map>
@@ -73,22 +74,21 @@ S(optJson.jsonPath("$.data.contribution").stringValue())</camunda:script>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="SequenceFlow_0pq6n21" sourceRef="Task_1t949jv" targetRef="ServiceTask_13zhr5h" />
     <bpmn:serviceTask id="ServiceTask_13zhr5h" name="Fill out form" camunda:type="external" camunda:topic="form">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:outputParameter name="answers">
+            <camunda:script scriptFormat="javascript">execution.getVariable("answers");</camunda:script>
+          </camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_0pq6n21</bpmn:incoming>
       <bpmn:outgoing>SequenceFlow_0d79ufv</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="SequenceFlow_0d79ufv" sourceRef="ServiceTask_13zhr5h" targetRef="Task_1y3jms2" />
-    <bpmn:sequenceFlow id="SequenceFlow_1eipnjk" sourceRef="Task_19293fw" targetRef="Task_1t949jv" />
-    <bpmn:sequenceFlow id="SequenceFlow_18w99j1" sourceRef="Task_1y3jms2" targetRef="ServiceTask_0mk5mjv" />
-    <bpmn:serviceTask id="Task_1y3jms2" name="Merge Contribution">
+    <bpmn:sequenceFlow id="SequenceFlow_0d79ufv" sourceRef="ServiceTask_13zhr5h" targetRef="ServiceTask_0jhnace" />
+    <bpmn:serviceTask id="ServiceTask_0jhnace" name="Merge Contribution">
       <bpmn:extensionElements>
         <camunda:connector>
           <camunda:inputOutput>
-            <camunda:inputParameter name="payload">
-              <camunda:script scriptFormat="Javascript">var contribution=execution.getVariable("contribution");
-var answers=execution.getVariable("answers");
-
-S('{"contribution":'+contribution.toString()+', "answers":'+answers.toString()+'}')</camunda:script>
-            </camunda:inputParameter>
             <camunda:inputParameter name="url">http://3.89.218.153:6969/merge/contribution</camunda:inputParameter>
             <camunda:inputParameter name="method">POST</camunda:inputParameter>
             <camunda:inputParameter name="headers">
@@ -97,152 +97,111 @@ S('{"contribution":'+contribution.toString()+', "answers":'+answers.toString()+'
                 <camunda:entry key="Content-Type">application/json</camunda:entry>
               </camunda:map>
             </camunda:inputParameter>
+            <camunda:inputParameter name="payload">
+              <camunda:script scriptFormat="Javascript">var answers = execution.getVariable("answers")
+var contribution = JSON.stringify(execution.getVariable("contribution").toString());
+'{"answers":'+answers.toString()+', "contribution":'+contribution+'}'</camunda:script>
+            </camunda:inputParameter>
             <camunda:outputParameter name="mergeResponse">
-              <camunda:script scriptFormat="Javascript">S(response)</camunda:script>
+              <camunda:script scriptFormat="javascript">var mergeResponse = S(response);
+connector.setVariable("mergedContribution",S(mergeResponse.jsonPath("$.data.contribution").stringValue()));
+connector.setVariable("mergeSuccess", mergeResponse.jsonPath("$.success").boolValue())</camunda:script>
             </camunda:outputParameter>
           </camunda:inputOutput>
           <camunda:connectorId>http-connector</camunda:connectorId>
         </camunda:connector>
-        <camunda:inputOutput>
-          <camunda:outputParameter name="mergedContribution">
-            <camunda:script scriptFormat="Javascript">var mergeResponse = execution.getVariable("mergeResponse");
-S(mergeResponse.jsonPath("$.data.contribution").stringValue())</camunda:script>
-          </camunda:outputParameter>
-          <camunda:outputParameter name="mergeSuccess">
-            <camunda:script scriptFormat="Javascript">var mergeResponse = execution.getVariable("mergeResponse");
-mergeResponse.jsonPath("$.success").boolValue()</camunda:script>
-          </camunda:outputParameter>
-        </camunda:inputOutput>
       </bpmn:extensionElements>
       <bpmn:incoming>SequenceFlow_0d79ufv</bpmn:incoming>
-      <bpmn:outgoing>SequenceFlow_18w99j1</bpmn:outgoing>
+      <bpmn:outgoing>SequenceFlow_0do2s96</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:serviceTask id="ServiceTask_0mk5mjv" name="Validate Contribution">
+    <bpmn:serviceTask id="ServiceTask_07d8ddg" name="Validate Contribution">
       <bpmn:extensionElements>
         <camunda:connector>
           <camunda:inputOutput>
-            <camunda:inputParameter name="payload">
-              <camunda:script scriptFormat="Javascript">var contribution=execution.getVariable("mergedContribution");
-contribution.toString();</camunda:script>
-            </camunda:inputParameter>
-            <camunda:inputParameter name="url">http://3.89.218.153:6969/validate/instance/${instanceId}</camunda:inputParameter>
+            <camunda:inputParameter name="url">http://3.89.218.153:6969/validate/instance</camunda:inputParameter>
             <camunda:inputParameter name="method">POST</camunda:inputParameter>
             <camunda:inputParameter name="headers">
               <camunda:map>
                 <camunda:entry key="Accept">*/*</camunda:entry>
-                <camunda:entry key="Content-Type">application/xml</camunda:entry>
+                <camunda:entry key="Content-Type">text/xml</camunda:entry>
               </camunda:map>
             </camunda:inputParameter>
-            <camunda:outputParameter name="validationResponse">
-              <camunda:script scriptFormat="Javascript">S(response)</camunda:script>
-            </camunda:outputParameter>
-          </camunda:inputOutput>
-          <camunda:connectorId>http-connector</camunda:connectorId>
-        </camunda:connector>
-        <camunda:inputOutput>
-          <camunda:outputParameter name="validationSuccess">
-            <camunda:script scriptFormat="Javascript">var validationResponse = execution.getVariable("validationResponse");
-validationResponse .jsonPath("$.success").boolValue()</camunda:script>
-          </camunda:outputParameter>
-        </camunda:inputOutput>
-      </bpmn:extensionElements>
-      <bpmn:incoming>SequenceFlow_18w99j1</bpmn:incoming>
-      <bpmn:outgoing>SequenceFlow_0yqx0wd</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="SequenceFlow_0yqx0wd" sourceRef="ServiceTask_0mk5mjv" targetRef="ServiceTask_16pdypi" />
-    <bpmn:serviceTask id="ServiceTask_16pdypi" name="Store Contribution">
-      <bpmn:extensionElements>
-        <camunda:connector>
-          <camunda:inputOutput>
             <camunda:inputParameter name="payload">
-              <camunda:script scriptFormat="Javascript">var contribution=execution.getVariable("mergedContribution");
-contribution.toString();</camunda:script>
+              <camunda:script scriptFormat="javascript">execution.getVariable("mergedContribution").toString()</camunda:script>
             </camunda:inputParameter>
-            <camunda:inputParameter name="url">http://3.89.210.6:8090/ehr/api/v1/ehrs/${ehrId}/compositions?auditCommitter=Dr. Vergas</camunda:inputParameter>
-            <camunda:inputParameter name="method">POST</camunda:inputParameter>
-            <camunda:inputParameter name="headers">
-              <camunda:map>
-                <camunda:entry key="Accept">*/*</camunda:entry>
-                <camunda:entry key="Content-Type">application/xml</camunda:entry>
-              </camunda:map>
-            </camunda:inputParameter>
-            <camunda:outputParameter name="compositionResponse">
-              <camunda:script scriptFormat="Javascript">S(response)</camunda:script>
+            <camunda:outputParameter name="validateResponse">
+              <camunda:script scriptFormat="Javascript">S(response)
+</camunda:script>
             </camunda:outputParameter>
           </camunda:inputOutput>
           <camunda:connectorId>http-connector</camunda:connectorId>
         </camunda:connector>
-        <camunda:inputOutput>
-          <camunda:outputParameter name="compositionSuccess">
-            <camunda:script scriptFormat="Javascript">var compositionResponse = execution.getVariable("compositionResponse");
-compositionResponse.jsonPath("$.success").boolValue()</camunda:script>
-          </camunda:outputParameter>
-        </camunda:inputOutput>
+        <camunda:executionListener event="end">
+          <camunda:script scriptFormat="Javascript">execution.removeVariable("mergedContribution");</camunda:script>
+        </camunda:executionListener>
       </bpmn:extensionElements>
-      <bpmn:incoming>SequenceFlow_0yqx0wd</bpmn:incoming>
-      <bpmn:outgoing>SequenceFlow_1spysnr</bpmn:outgoing>
+      <bpmn:incoming>SequenceFlow_0do2s96</bpmn:incoming>
+      <bpmn:outgoing>SequenceFlow_1e7m1fj</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="SequenceFlow_1spysnr" sourceRef="ServiceTask_16pdypi" targetRef="EndEvent_07pbote" />
+    <bpmn:sequenceFlow id="SequenceFlow_0do2s96" sourceRef="ServiceTask_0jhnace" targetRef="ServiceTask_07d8ddg" />
+    <bpmn:sequenceFlow id="SequenceFlow_1e7m1fj" sourceRef="ServiceTask_07d8ddg" targetRef="EndEvent_07pbote" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="consultation">
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
-        <dc:Bounds x="168" y="119" width="36" height="36" />
+        <dc:Bounds x="175" y="118" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="156" y="162" width="62" height="27" />
+          <dc:Bounds x="163" y="161" width="62" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="SequenceFlow_10q4iww_di" bpmnElement="SequenceFlow_10q4iww">
-        <di:waypoint x="204" y="137" />
-        <di:waypoint x="294" y="137" />
+        <di:waypoint x="211" y="136" />
+        <di:waypoint x="305" y="136" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="EndEvent_07pbote_di" bpmnElement="EndEvent_07pbote">
-        <dc:Bounds x="1449" y="119" width="36" height="36" />
+        <dc:Bounds x="1476" y="118" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1424" y="81" width="86" height="27" />
+          <dc:Bounds x="1451" y="80" width="86" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="ServiceTask_0i79emm_di" bpmnElement="Task_19293fw">
-        <dc:Bounds x="294" y="97" width="100" height="80" />
+        <dc:Bounds x="305" y="96" width="100" height="80" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="SequenceFlow_1eipnjk_di" bpmnElement="SequenceFlow_1eipnjk">
+        <di:waypoint x="405" y="136" />
+        <di:waypoint x="457" y="136" />
+        <di:waypoint x="457" y="137" />
+        <di:waypoint x="508" y="137" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="ServiceTask_0e97457_di" bpmnElement="Task_1t949jv">
-        <dc:Bounds x="490" y="97" width="100" height="80" />
+        <dc:Bounds x="508" y="97" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="SequenceFlow_0pq6n21_di" bpmnElement="SequenceFlow_0pq6n21">
-        <di:waypoint x="590" y="137" />
-        <di:waypoint x="686" y="137" />
+        <di:waypoint x="608" y="137" />
+        <di:waypoint x="696" y="137" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="ServiceTask_13zhr5h_di" bpmnElement="ServiceTask_13zhr5h">
-        <dc:Bounds x="686" y="97" width="100" height="80" />
+        <dc:Bounds x="696" y="97" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="SequenceFlow_0d79ufv_di" bpmnElement="SequenceFlow_0d79ufv">
-        <di:waypoint x="786" y="137" />
-        <di:waypoint x="875" y="137" />
+        <di:waypoint x="796" y="137" />
+        <di:waypoint x="922" y="137" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="SequenceFlow_1eipnjk_di" bpmnElement="SequenceFlow_1eipnjk">
-        <di:waypoint x="394" y="137" />
-        <di:waypoint x="490" y="137" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="SequenceFlow_18w99j1_di" bpmnElement="SequenceFlow_18w99j1">
-        <di:waypoint x="975" y="137" />
-        <di:waypoint x="1051" y="137" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="ServiceTask_0gl8pej_di" bpmnElement="Task_1y3jms2">
-        <dc:Bounds x="875" y="97" width="100" height="80" />
+      <bpmndi:BPMNShape id="ServiceTask_0jhnace_di" bpmnElement="ServiceTask_0jhnace">
+        <dc:Bounds x="922" y="97" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="ServiceTask_0mk5mjv_di" bpmnElement="ServiceTask_0mk5mjv">
-        <dc:Bounds x="1051" y="97" width="100" height="80" />
+      <bpmndi:BPMNShape id="ServiceTask_07d8ddg_di" bpmnElement="ServiceTask_07d8ddg">
+        <dc:Bounds x="1189" y="97" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="SequenceFlow_0yqx0wd_di" bpmnElement="SequenceFlow_0yqx0wd">
-        <di:waypoint x="1151" y="137" />
-        <di:waypoint x="1247" y="137" />
+      <bpmndi:BPMNEdge id="SequenceFlow_0do2s96_di" bpmnElement="SequenceFlow_0do2s96">
+        <di:waypoint x="1022" y="137" />
+        <di:waypoint x="1189" y="137" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="ServiceTask_16pdypi_di" bpmnElement="ServiceTask_16pdypi">
-        <dc:Bounds x="1247" y="97" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="SequenceFlow_1spysnr_di" bpmnElement="SequenceFlow_1spysnr">
-        <di:waypoint x="1347" y="137" />
-        <di:waypoint x="1449" y="137" />
+      <bpmndi:BPMNEdge id="SequenceFlow_1e7m1fj_di" bpmnElement="SequenceFlow_1e7m1fj">
+        <di:waypoint x="1289" y="137" />
+        <di:waypoint x="1383" y="137" />
+        <di:waypoint x="1383" y="136" />
+        <di:waypoint x="1476" y="136" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
