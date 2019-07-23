@@ -17,8 +17,8 @@ phases:
             - echo Build $APPLICATION_NAME started on `date`            
             - echo Building the Docker image - $APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME
             - docker build -t $APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME .
-            - docker tag $APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME
             - echo Tagging $APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME
+            - docker tag $APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$APPLICATION_NAME:$DEPLOYMENT_GROUP_NAME        
     post_build:
         commands:
             - echo Build completed on `date`
